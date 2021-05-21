@@ -19,7 +19,7 @@
 use clap::{load_yaml, App};
 
 use keyring::AccountKeyring;
-use node_template_runtime::{BalancesCall, Call, Header};
+use sugarfunge_runtime::{BalancesCall, Call, Header};
 use sp_core::crypto::Pair;
 use sp_runtime::MultiAddress;
 

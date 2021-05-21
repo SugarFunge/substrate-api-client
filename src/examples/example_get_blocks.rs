@@ -23,7 +23,7 @@ use clap::App;
 
 use sp_core::sr25519;
 
-use node_template_runtime::{Block, Header, SignedBlock};
+use sugarfunge_runtime::{Block, Header, SignedBlock};
 use std::sync::mpsc::channel;
 use substrate_api_client::Api;
 
