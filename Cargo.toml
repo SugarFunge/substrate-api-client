@@ -1,126 +1,73 @@
 [package]
 name = "substrate-api-client"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Supercomputing Systems AG <info@scs.ch>"]
 edition = "2018"
 
 [dependencies]
-env_logger      = { version = "0.7", optional = true }
-ws              = { version = "0.9.1", optional = true, features = ["ssl"] }
-hex             = { version = "0.4.2", default-features = false }
-log             = { version = "0.4", optional = true }
-serde           = { version = "1.0", optional = true, features = ["derive"] }
-serde_json      = { version = "1.0", optional = true }
-thiserror       = { version = "1.0", optional =true }
-primitive-types = { version = "0.6.1", optional = true, features = ["codec"] }
+hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
+log = { version = "0.4", optional = true }
+primitive-types = { version = "0.10.1", optional = true, features = ["codec"] }
+serde = { version = "1.0", optional = true, features = ["derive"] }
+serde_json = { version = "1.0", optional = true }
+thiserror = { version = "1.0", optional = true }
+ws = { version = "0.9.1", optional = true, features = ["ssl"] }
+codec = { package = 'parity-scale-codec', version = "2.0.0", default-features = false,  features = ['derive']}
+scale-info = { version = "1.0", default-features = false, features = ["derive"] }
 
-[dependencies.sp-core]
-git = "https://github.com/paritytech/substrate.git"
-branch = "polkadot-v0.9.8"
-package = "sp-core"
-default-features = false
-features = ["full_crypto"]
+# Substrate dependencies
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", features = ["full_crypto"] }
+sp-version = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", package = "sp-version", optional = true }
+balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", package = "pallet-balances", optional = true }
+staking = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", package = "pallet-staking", optional = true }
+system = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", package = "frame-system", optional = true }
+transaction-payment = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", package = "pallet-transaction-payment", optional = true }
+sp-rpc = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", optional = true }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
+support = { default-features = false, git = "https://github.com/paritytech/substrate.git", package = "frame-support", branch = "polkadot-v0.9.12" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12" }
+# new parity repository
+metadata = { version = "14.0.0", default-features = false, git = "https://github.com/paritytech/frame-metadata.git", branch = "main", package = "frame-metadata", features = ["v13"] }
+# need to add this for the app_crypto macro
+sp-application-crypto = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", features = ["full_crypto"] }
 
-[dependencies.codec]
-package = "parity-scale-codec"
-features = ["derive"]
-version = "2.0.0"
-default-features = false
 
-[dependencies.metadata]
-git = "https://github.com/paritytech/substrate.git"
-branch = "polkadot-v0.9.8"
-package = "frame-metadata"
-default-features=false
-
-[dependencies.sp-version]
-git = "https://github.com/paritytech/substrate.git"
-branch = "polkadot-v0.9.8"
-package = "sp-version"
-default-features=false
-
-[dependencies.balances]
-git = "https://github.com/paritytech/substrate.git"
-branch = "polkadot-v0.9.8"
-package = "pallet-balances"
-default-features=false
-
-[dependencies.system]
-git = "https://github.com/paritytech/substrate.git"
-branch = "polkadot-v0.9.8"
-package = "frame-system"
-default-features=false
-
-[dependencies.sp-runtime]
-git = "https://github.com/paritytech/substrate.git"
-branch = "polkadot-v0.9.8"
-package = "sp-runtime"
-default-features=false
-
-[dependencies.support]
-git = "https://github.com/paritytech/substrate.git"
-branch = "polkadot-v0.9.8"
-package = "frame-support"
-default-features=false
-
-[dependencies.sp-std]
-git = "https://github.com/paritytech/substrate.git"
-branch = "polkadot-v0.9.8"
-package = "sp-std"
-default-features = false
-
-[dependencies.sc-rpc-api]
-git = "https://github.com/paritytech/substrate.git"
-branch = "polkadot-v0.9.8"
-optional = true
+[dev-dependencies]
+env_logger = "0.9"
+keyring = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.12", package = "sp-keyring" }
+clap = { version = "2.33", features = ["yaml"] }
 
 [dev-dependencies.sugarfunge-runtime]
 git = "https://github.com/SugarFunge/sugarfunge-node.git"
-rev = "f628f4e9302697fdacb6e3b6301ffd68231d8985"
+rev = "c860098f1a7ce482d9e6ceed8e77d8f24c60eea0"
 version = "0.1.0"
 package = "sugarfunge-runtime"
 
-[dev-dependencies]
-wabt = "0.9.0"
-
-[dev-dependencies.contracts]
-git = "https://github.com/paritytech/substrate.git"
-branch = "polkadot-v0.9.8"
-package = "pallet-contracts"
-
-[dev-dependencies.keyring]
-git = "https://github.com/paritytech/substrate.git"
-branch = "polkadot-v0.9.8"
-package = "sp-keyring"
-
-[dev-dependencies.clap]
-version = "2.33"
-features = ["yaml"]
-
 [features]
-default = ["std"]
+default = ["std", "ws-client"]
 std = [
-    "sc-rpc-api",
+	"sp-application-crypto/std",
 	"sp-core/std",
 	"codec/std",
+	"scale-info/std",
 	"metadata/std",
-	"sp-version/std",
-	"balances/std",
-	"system/std",
-    "sp-runtime/std",
+	"sp-version",
+	"balances",
+	"system",
+	"sp-runtime/std",
 	"support/std",
 	"sp-std/std",
 	"serde/std",
 	"serde_json",
-	"env_logger",
 	"log",
-	"ws",
 	"hex/std",
 	"primitive-types",
 	"thiserror",
+	"sp-rpc",
+	"transaction-payment/std"
 ]
-# need to add this for the app_crypto macro
-full_crypto = []
+ws-client = ["ws"]
+staking-xt = ["std", "staking"]
 
 [[example]]
 name = "example_get_storage"
@@ -133,6 +80,10 @@ path = "src/examples/example_get_blocks.rs"
 [[example]]
 name = "example_transfer"
 path = "src/examples/example_transfer.rs"
+
+[[example]]
+name = "example_event_error_details"
+path = "src/examples/example_event_error_details.rs"
 
 [[example]]
 name = "example_event_callback"
@@ -162,7 +113,24 @@ path = "src/examples/example_benchmark_bulk_xt.rs"
 name = "example_sudo"
 path = "src/examples/example_sudo.rs"
 
+[[example]]
+name = "example_custom_client"
+path = "src/examples/example_custom_client.rs"
+
+[[example]]
+name = "example_get_existential_deposit"
+path = "src/examples/example_get_existential_deposit.rs"
+
 # DEPRECATED. might work but too much work to maintain, sorry
+
+# needed for contract example
+#[dev-dependencies]
+#wabt = "0.10.0"
+
+#[dev-dependencies.contracts]
+#git = "https://github.com/paritytech/substrate.git"
+#branch = "master"
+#package = "pallet-contracts"
 
 #[[example]]
 #name = "example_contract"

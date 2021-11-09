@@ -27,6 +27,7 @@ use sp_core::H256 as Hash;
 // Replace this crate by your own if you run a custom substrate node to get your custom events.
 use sugarfunge_runtime::Event;
 
+use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::utils::FromHexString;
 use substrate_api_client::Api;
 
@@ -34,7 +35,8 @@ fn main() {
     env_logger::init();
     let url = get_node_url_from_cli();
 
-    let api = Api::<sr25519::Pair>::new(url).unwrap();
+    let client = WsRpcClient::new(&url);
+    let api = Api::<sr25519::Pair, _>::new(client).unwrap();
 
     println!("Subscribe to events");
     let (events_in, events_out) = channel();
@@ -51,7 +53,7 @@ fn main() {
                 for evr in &evts {
                     println!("decoded: {:?} {:?}", evr.phase, evr.event);
                     match &evr.event {
-                        Event::pallet_balances(be) => {
+                        Event::Balances(be) => {
                             println!(">>>>>>>>>> balances event: {:?}", be);
                             match &be {
                                 balances::Event::Transfer(transactor, dest, value) => {

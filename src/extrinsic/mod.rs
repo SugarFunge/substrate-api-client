@@ -27,7 +27,11 @@ pub extern crate log;
 pub mod balances;
 #[cfg(feature = "std")]
 pub mod contract;
+#[cfg(feature = "staking-xt")]
+pub mod staking;
 pub mod xt_primitives;
+
+pub type CallIndex = [u8; 2];
 
 /// Generates the extrinsic's call field for a given module and call passed as &str
 /// # Arguments
@@ -71,6 +75,9 @@ macro_rules! compose_extrinsic_offline {
     $transaction_version: expr) => {{
         use $crate::extrinsic::xt_primitives::*;
         use $crate::sp_runtime::generic::Era;
+        use $crate::sp_runtime::traits::IdentifyAccount;
+        use $crate::sp_runtime::MultiSigner;
+
         let extra = GenericExtra::new($era, $nonce);
         let raw_payload = SignedPayload::from_raw(
             $call.clone(),
@@ -88,12 +95,11 @@ macro_rules! compose_extrinsic_offline {
 
         let signature = raw_payload.using_encoded(|payload| $signer.sign(payload));
 
-        let mut arr: [u8; 32] = Default::default();
-        arr.clone_from_slice($signer.public().as_ref());
+        let multi_signer: MultiSigner = $signer.public().into();
 
         UncheckedExtrinsicV4::new_signed(
             $call,
-            GenericAddress::from(AccountId::from(arr)),
+            GenericAddress::from(multi_signer.into_account()),
             signature.into(),
             extra,
         )
@@ -117,6 +123,7 @@ macro_rules! compose_extrinsic {
 	$call: expr
 	$(, $args: expr) *) => {
 		{
+            #[allow(unused_imports)] // For when extrinsic does not use Compact
             use $crate::extrinsic::codec::Compact;
             use $crate::extrinsic::log::info;
             use $crate::extrinsic::xt_primitives::*;

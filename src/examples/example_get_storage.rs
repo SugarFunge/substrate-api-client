@@ -17,6 +17,7 @@
 use clap::{load_yaml, App};
 
 use keyring::AccountKeyring;
+use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::AccountInfo;
 use substrate_api_client::Api;
 
@@ -24,7 +25,8 @@ fn main() {
     env_logger::init();
     let url = get_node_url_from_cli();
 
-    let mut api = Api::new(url).unwrap();
+    let client = WsRpcClient::new(&url);
+    let mut api = Api::new(client).unwrap();
 
     // get some plain storage value
     let result: u128 = api
@@ -50,14 +52,6 @@ fn main() {
     // get StorageMap key prefix
     let result = api.get_storage_map_key_prefix("System", "Account").unwrap();
     println!("[+] key prefix for System Account map is {:?}", result);
-
-    // get StorageDoubleMap
-    let result: u32 = api
-        .get_storage_double_map("TemplateModule", "SomeDoubleMap", 1_u32, 2_u32, None)
-        .unwrap()
-        .or(Some(0))
-        .unwrap();
-    println!("[+] some double map (1,2) should be 3. Is {:?}", result);
 
     // get Alice's AccountNonce with api.get_nonce()
     let signer = AccountKeyring::Alice.pair();

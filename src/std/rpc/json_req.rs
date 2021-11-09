@@ -50,12 +50,23 @@ pub fn chain_subscribe_finalized_heads() -> Value {
     json_req("chain_subscribeFinalizedHeads", Value::Null, 1)
 }
 
+pub fn payment_query_fee_details(xthex_prefixed: &str, at_block: Option<Hash>) -> Value {
+    json_req(
+        "payment_queryFeeDetails",
+        vec![
+            to_value(xthex_prefixed).unwrap(),
+            to_value(at_block).unwrap(),
+        ],
+        1,
+    )
+}
+
 pub fn state_get_metadata() -> Value {
     state_get_metadata_with_id(1)
 }
 
 pub fn state_get_metadata_with_id(id: u32) -> Value {
-    json_req("state_getMetadata", Value::Null, id)
+    json_req("state_getMetadata", vec![Value::Null], id)
 }
 
 pub fn state_get_runtime_version() -> Value {
@@ -63,7 +74,7 @@ pub fn state_get_runtime_version() -> Value {
 }
 
 pub fn state_get_runtime_version_with_id(id: u32) -> Value {
-    json_req("state_getRuntimeVersion", Value::Null, id)
+    json_req("state_getRuntimeVersion", vec![Value::Null], id)
 }
 
 pub fn state_subscribe_storage(key: Vec<StorageKey>) -> Value {
@@ -107,8 +118,16 @@ pub fn state_get_keys(key: StorageKey, at_block: Option<Hash>) -> Value {
     )
 }
 
+pub fn author_submit_extrinsic(xthex_prefixed: &str) -> Value {
+    author_submit_extrinsic_with_id(xthex_prefixed, REQUEST_TRANSFER)
+}
+
 pub fn author_submit_and_watch_extrinsic(xthex_prefixed: &str) -> Value {
     author_submit_and_watch_extrinsic_with_id(xthex_prefixed, REQUEST_TRANSFER)
+}
+
+pub fn author_submit_extrinsic_with_id(xthex_prefixed: &str, id: u32) -> Value {
+    json_req("author_submitExtrinsic", vec![xthex_prefixed], id)
 }
 
 pub fn author_submit_and_watch_extrinsic_with_id(xthex_prefixed: &str, id: u32) -> Value {

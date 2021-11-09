@@ -20,8 +20,9 @@ use codec::{Decode, Encode};
 
 use log::*;
 use metadata::{
-    DecodeDifferent, RuntimeMetadata, RuntimeMetadataPrefixed, StorageEntryModifier,
-    StorageEntryType, StorageHasher, META_RESERVED,
+    decode_different::DecodeDifferent,
+    v13::{StorageEntryModifier, StorageEntryType, StorageHasher, META_RESERVED},
+    RuntimeMetadata, RuntimeMetadataPrefixed,
 };
 use serde::ser::Serialize;
 use sp_core::storage::StorageKey;
@@ -44,6 +45,14 @@ pub enum MetadataError {
     StorageTypeError,
     #[error("Map value type error")]
     MapValueTypeError,
+    #[error("Module with errors not found")]
+    ModuleWithErrorsNotFound(u8),
+    #[error("Error not found")]
+    ErrorNotFound(u8),
+    #[error("Module with constants not found")]
+    ModuleWithConstantsNotFound(u8),
+    #[error("Constant not found")]
+    ConstantNotFound(String),
 }
 
 #[derive(Clone, Debug)]
@@ -51,6 +60,8 @@ pub struct Metadata {
     modules: HashMap<String, ModuleMetadata>,
     modules_with_calls: HashMap<String, ModuleWithCalls>,
     modules_with_events: HashMap<String, ModuleWithEvents>,
+    modules_with_errors: HashMap<String, ModuleWithErrors>,
+    modules_with_constants: HashMap<String, ModuleWithConstants>,
 }
 
 impl Metadata {
@@ -99,6 +110,54 @@ impl Metadata {
             .ok_or(MetadataError::ModuleWithEventsNotFound(module_index))
     }
 
+    pub fn modules_with_errors(&self) -> impl Iterator<Item = &ModuleWithErrors> {
+        self.modules_with_errors.values()
+    }
+
+    pub fn module_with_errors_by_name<S>(&self, name: S) -> Result<&ModuleWithErrors, MetadataError>
+    where
+        S: ToString,
+    {
+        let name = name.to_string();
+        self.modules_with_errors
+            .get(&name)
+            .ok_or(MetadataError::ModuleNotFound(name))
+    }
+
+    pub fn module_with_errors(&self, module_index: u8) -> Result<&ModuleWithErrors, MetadataError> {
+        self.modules_with_errors
+            .values()
+            .find(|&module| module.index == module_index)
+            .ok_or(MetadataError::ModuleWithErrorsNotFound(module_index))
+    }
+
+    pub fn modules_with_constants(&self) -> impl Iterator<Item = &ModuleWithConstants> {
+        self.modules_with_constants.values()
+    }
+
+    pub fn module_with_constants_by_name<S>(
+        &self,
+        name: S,
+    ) -> Result<&ModuleWithConstants, MetadataError>
+    where
+        S: ToString,
+    {
+        let name = name.to_string();
+        self.modules_with_constants
+            .get(&name)
+            .ok_or(MetadataError::ModuleNotFound(name))
+    }
+
+    pub fn module_with_constants(
+        &self,
+        module_index: u8,
+    ) -> Result<&ModuleWithConstants, MetadataError> {
+        self.modules_with_constants
+            .values()
+            .find(|&module| module.index == module_index)
+            .ok_or(MetadataError::ModuleWithConstantsNotFound(module_index))
+    }
+
     pub fn print_overview(&self) {
         let mut string = String::new();
         for (name, module) in &self.modules {
@@ -123,6 +182,20 @@ impl Metadata {
                     string.push('\n');
                 }
             }
+            if let Some(module) = self.modules_with_constants.get(name) {
+                for constant in module.constants.values() {
+                    string.push_str(" cst  ");
+                    string.push_str(constant.name.as_str());
+                    string.push('\n');
+                }
+            }
+            if let Some(module) = self.modules_with_errors.get(name) {
+                for error in module.errors.values() {
+                    string.push_str(" err  ");
+                    string.push_str(error.as_str());
+                    string.push('\n');
+                }
+            }
         }
         println!("{}", string);
     }
@@ -143,6 +216,18 @@ impl Metadata {
 
     pub fn print_modules_with_events(&self) {
         for m in self.modules_with_events() {
+            m.print()
+        }
+    }
+
+    pub fn print_modules_with_constants(&self) {
+        for m in self.modules_with_constants() {
+            m.print()
+        }
+    }
+
+    pub fn print_modules_with_errors(&self) {
+        for m in self.modules_with_errors() {
             m.print()
         }
     }
@@ -264,6 +349,80 @@ impl ModuleWithEvents {
 
         for e in self.events() {
             println!("Name: {:?}, Args: {:?}", e.name, e.arguments);
+        }
+        println!()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ModuleWithErrors {
+    pub index: u8,
+    pub name: String,
+    pub errors: HashMap<u8, String>,
+}
+
+impl ModuleWithErrors {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn error(&self, index: u8) -> Result<&String, MetadataError> {
+        self.errors
+            .get(&index)
+            .ok_or(MetadataError::ErrorNotFound(index))
+    }
+
+    pub fn print(&self) {
+        println!(
+            "----------------- Errors for Module: {} -----------------\n",
+            self.name()
+        );
+
+        for e in self.errors.values() {
+            println!("Name: {}", e);
+        }
+        println!()
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ModuleWithConstants {
+    index: u8,
+    name: String,
+    constants: HashMap<u8, ModuleConstantMetadata>,
+}
+
+impl ModuleWithConstants {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn constants(&self) -> impl Iterator<Item = &ModuleConstantMetadata> {
+        self.constants.values()
+    }
+
+    pub fn constant_by_name<S>(
+        &self,
+        constant_name: S,
+    ) -> Result<&ModuleConstantMetadata, MetadataError>
+    where
+        S: ToString,
+    {
+        let name = constant_name.to_string();
+        self.constants
+            .values()
+            .find(|&constant| constant.name == name)
+            .ok_or(MetadataError::ConstantNotFound(name))
+    }
+
+    pub fn print(&self) {
+        println!(
+            "----------------- Constants for Module: {} -----------------\n",
+            self.name()
+        );
+
+        for e in self.constants() {
+            println!("Name: {}, Type: {}, Value{:?}", e.name, e.ty, e.value);
         }
         println!()
     }
@@ -425,6 +584,22 @@ impl<K: Encode, Q: Encode, V: Decode + Clone> StorageDoubleMap<K, Q, V> {
 }
 
 #[derive(Clone, Debug)]
+pub struct ModuleConstantMetadata {
+    name: String,
+    ty: String,
+    value: Vec<u8>,
+}
+
+impl ModuleConstantMetadata {
+    pub fn get_value(&self) -> Vec<u8> {
+        self.value.clone()
+    }
+    pub fn get_type(&self) -> String {
+        self.ty.clone()
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct ModuleEventMetadata {
     pub name: String,
     arguments: Vec<EventArg>,
@@ -524,6 +699,9 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
         let mut modules = HashMap::new();
         let mut modules_with_calls = HashMap::new();
         let mut modules_with_events = HashMap::new();
+        let mut modules_with_errors = HashMap::new();
+        let mut modules_with_constants = HashMap::new();
+
         for module in convert(meta.modules)?.into_iter() {
             let module_name = convert(module.name.clone())?;
 
@@ -576,11 +754,40 @@ impl TryFrom<RuntimeMetadataPrefixed> for Metadata {
                     },
                 );
             }
+            let errors = module.errors;
+            let mut error_map = HashMap::new();
+            for (index, error) in convert(errors)?.into_iter().enumerate() {
+                let name = convert(error.name)?;
+                error_map.insert(index as u8, name);
+            }
+            modules_with_errors.insert(
+                module_name.clone(),
+                ModuleWithErrors {
+                    index: module.index,
+                    name: module_name.clone(),
+                    errors: error_map,
+                },
+            );
+            let constants = module.constants;
+            let mut constant_map = HashMap::new();
+            for (index, constant) in convert(constants)?.into_iter().enumerate() {
+                constant_map.insert(index as u8, convert_constant(constant)?);
+            }
+            modules_with_constants.insert(
+                module_name.clone(),
+                ModuleWithConstants {
+                    index: module.index,
+                    name: module_name.clone(),
+                    constants: constant_map,
+                },
+            );
         }
         Ok(Metadata {
             modules,
             modules_with_calls,
             modules_with_events,
+            modules_with_errors,
+            modules_with_constants,
         })
     }
 }
@@ -592,7 +799,9 @@ fn convert<B: 'static, O: 'static>(dd: DecodeDifferent<B, O>) -> Result<O, Conve
     }
 }
 
-fn convert_event(event: metadata::EventMetadata) -> Result<ModuleEventMetadata, ConversionError> {
+fn convert_event(
+    event: metadata::v13::EventMetadata,
+) -> Result<ModuleEventMetadata, ConversionError> {
     let name = convert(event.name)?;
     let mut arguments = Vec::new();
     for arg in convert(event.arguments)? {
@@ -602,10 +811,19 @@ fn convert_event(event: metadata::EventMetadata) -> Result<ModuleEventMetadata, 
     Ok(ModuleEventMetadata { name, arguments })
 }
 
+fn convert_constant(
+    constant: metadata::v13::ModuleConstantMetadata,
+) -> Result<ModuleConstantMetadata, ConversionError> {
+    let name = convert(constant.name)?;
+    let value = convert(constant.value)?;
+    let ty = convert(constant.ty)?;
+    Ok(ModuleConstantMetadata { name, ty, value })
+}
+
 fn convert_entry(
     module_prefix: String,
     storage_prefix: String,
-    entry: metadata::StorageEntryMetadata,
+    entry: metadata::v13::StorageEntryMetadata,
 ) -> Result<StorageMetadata, ConversionError> {
     let default = convert(entry.default)?;
     Ok(StorageMetadata {
@@ -635,6 +853,10 @@ fn key_hash<K: Encode>(key: &K, hasher: &StorageHasher) -> Vec<u8> {
         StorageHasher::Blake2_256 => sp_core::blake2_256(&encoded_key).to_vec(),
         StorageHasher::Twox128 => sp_core::twox_128(&encoded_key).to_vec(),
         StorageHasher::Twox256 => sp_core::twox_256(&encoded_key).to_vec(),
-        StorageHasher::Twox64Concat => sp_core::twox_64(&encoded_key).to_vec(),
+        StorageHasher::Twox64Concat => sp_core::twox_64(&encoded_key)
+            .iter()
+            .chain(&encoded_key)
+            .cloned()
+            .collect(),
     }
 }

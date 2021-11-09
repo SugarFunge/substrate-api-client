@@ -21,17 +21,21 @@ extern crate clap;
 
 use clap::App;
 
+use sugarfunge_runtime::{Block, Header};
 use sp_core::sr25519;
-
-use sugarfunge_runtime::{Block, Header, SignedBlock};
+use sp_runtime::generic::SignedBlock as SignedBlockG;
 use std::sync::mpsc::channel;
+use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::Api;
+
+type SignedBlock = SignedBlockG<Block>;
 
 fn main() {
     env_logger::init();
     let url = get_node_url_from_cli();
 
-    let api = Api::<sr25519::Pair>::new(url).unwrap();
+    let client = WsRpcClient::new(&url);
+    let api = Api::<sr25519::Pair, _>::new(client).unwrap();
 
     let head = api.get_finalized_head().unwrap().unwrap();
 

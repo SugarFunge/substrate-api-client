@@ -20,6 +20,7 @@ use clap::{load_yaml, App};
 use codec::Compact;
 use keyring::AccountKeyring;
 use sp_core::crypto::Pair;
+use substrate_api_client::rpc::WsRpcClient;
 use substrate_api_client::{
     compose_call, compose_extrinsic, Api, GenericAddress, UncheckedExtrinsicV4, XtStatus,
 };
@@ -30,7 +31,8 @@ fn main() {
 
     // initialize api and set the signer (sender) that is used to sign the extrinsics
     let sudoer = AccountKeyring::Alice.pair();
-    let api = Api::new(url).map(|api| api.set_signer(sudoer)).unwrap();
+    let client = WsRpcClient::new(&url);
+    let api = Api::new(client).map(|api| api.set_signer(sudoer)).unwrap();
 
     // set the recipient of newly issued funds
     let to = AccountKeyring::Bob.to_account_id();
@@ -42,8 +44,8 @@ fn main() {
         "Balances",
         "set_balance",
         GenericAddress::Id(to),
-        Compact(42 as u128),
-        Compact(42 as u128)
+        Compact(42_u128),
+        Compact(42_u128)
     );
     #[allow(clippy::redundant_clone)]
     let xt: UncheckedExtrinsicV4<_> = compose_extrinsic!(api.clone(), "Sudo", "sudo", call);
